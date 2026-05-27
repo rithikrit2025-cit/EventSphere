@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EventSphere</title>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f8fafc;
+  font-family: Arial, sans-serif;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button, input, textarea, select {
+  font: inherit;
+}
+
+@media (max-width: 900px) {
+  div[style*="grid-template-columns: 1fr 340px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  div[style*="grid-template-columns: repeat(4, 1fr)"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+@media (max-width: 700px) {
+  div[style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  div[style*="grid-template-columns: 2fr 1fr 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+</style>
+</head>
+
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+
+
+const COLORS = {
+  primary: "#0f172a",
+  accent: "#6366f1",
+  accentLight: "#818cf8",
+  accentBg: "#eef2ff",
+  success: "#10b981",
+  successBg: "#d1fae5",
+  warning: "#f59e0b",
+  danger: "#ef4444",
+  dangerBg: "#fee2e2",
+  bg: "#f8fafc",
+  card: "#ffffff",
+  border: "#e2e8f0",
+  text: "#0f172a",
+  muted: "#64748b",
+  light: "#f1f5f9",
+};
+
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');`;
+
+const initialEvents = [
+  { id: 1, name: "DevFusion Hackathon 2.0", category: "Tech", date: "2026-06-15", time: "09:00", city: "Chennai", venue: "IIT Madras Research Park", type: "physical", description: "The ultimate 24-hour coding marathon for developers across India. Build, break, innovate.", banner: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&q=80", organiser: "DevFusion Team", capacity: 500, tickets: [{ type: "General", price: 0, capacity: 400, sold: 312 }, { type: "VIP", price: 999, capacity: 100, sold: 67 }], tags: ["coding", "AI", "hackathon"], agenda: [{ time: "9:00 AM", title: "Opening Ceremony" }, { time: "10:00 AM", title: "Hacking Begins" }, { time: "6:00 PM", title: "Mentorship Sessions" }], speakers: ["Dario Amodei", "Sam Altman"], faq: [{ q: "Can I participate solo?", a: "Teams of 1-4 are allowed." }], rating: 4.8, reviews: 142 },
+  { id: 2, name: "AI Summit India 2026", category: "Tech", date: "2026-07-20", time: "10:00", city: "Bangalore", venue: "Online", type: "online", description: "India's largest AI conference featuring top researchers, builders, and investors from across the globe.", banner: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&q=80", organiser: "AI India Foundation", capacity: 2000, tickets: [{ type: "Free Pass", price: 0, capacity: 1500, sold: 892 }, { type: "Premium", price: 1499, capacity: 500, sold: 201 }], tags: ["AI", "ML", "research"], agenda: [{ time: "10:00 AM", title: "Keynote: Future of AI" }, { time: "2:00 PM", title: "Panel Discussions" }], speakers: ["Dr. Turing", "Priya Sharma"], faq: [{ q: "Is there a recording?", a: "Yes, for premium attendees." }], rating: 4.6, reviews: 89 },
+  { id: 3, name: "Startup Pitch Night", category: "Business", date: "2026-06-28", time: "18:00", city: "Mumbai", venue: "NSRCEL, IIM Ahmedabad", type: "physical", description: "60-second pitches, real investors, and networking dinner. The night your startup story changes.", banner: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800&q=80", organiser: "Venture Hub", capacity: 200, tickets: [{ type: "Founder", price: 499, capacity: 150, sold: 98 }, { type: "Investor", price: 0, capacity: 50, sold: 32 }], tags: ["startup", "funding", "networking"], agenda: [{ time: "6:00 PM", title: "Networking" }, { time: "7:00 PM", title: "Pitches Begin" }], speakers: ["Rajan Anandan"], faq: [{ q: "Can I pitch without a prototype?", a: "Ideas at any stage are welcome." }], rating: 4.9, reviews: 56 },
+  { id: 4, name: "UI/UX Design Week", category: "Design", date: "2026-08-05", time: "11:00", city: "Hyderabad", venue: "T-Hub", type: "physical", description: "Five days of workshops, critiques, portfolio reviews, and design thinking sessions with top product designers.", banner: "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800&q=80", organiser: "Design Collective India", capacity: 300, tickets: [{ type: "Workshop Pass", price: 2999, capacity: 300, sold: 189 }], tags: ["design", "UX", "product"], agenda: [{ time: "11:00 AM", title: "Design Principles Talk" }, { time: "2:00 PM", title: "Portfolio Reviews" }], speakers: ["Julie Zhuo", "Kavin Prasath"], faq: [{ q: "Do I need a portfolio?", a: "No, all levels welcome." }], rating: 4.7, reviews: 73 },
+];
+
+const CATEGORIES = ["All", "Tech", "Business", "Design", "Marketing", "Health", "Music"];
+
+function Badge({ children, color = "accent", small }) {
+  const styles = {
+    accent: { bg: COLORS.accentBg, color: COLORS.accent },
+    success: { bg: COLORS.successBg, color: COLORS.success },
+    warning: { bg: "#fef3c7", color: "#92400e" },
+    danger: { bg: COLORS.dangerBg, color: COLORS.danger },
+    gray: { bg: COLORS.light, color: COLORS.muted },
+  };
+  const s = styles[color] || styles.accent;
+  return (
+    <span style={{ background: s.bg, color: s.color, padding: small ? "2px 8px" : "4px 12px", borderRadius: 20, fontSize: small ? 11 : 12, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", letterSpacing: 0.3 }}>
+      {children}
+    </span>
+  );
+}
+
+function QRCode({ value, size = 120 }) {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const ctx = canvasRef.current.getContext("2d");
+    const cells = 21;
+    const cellSize = size / cells;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, size, size);
+    const hash = value.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+    ctx.fillStyle = "#0f172a";
+    for (let r = 0; r < cells; r++) {
+      for (let c = 0; c < cells; c++) {
+        const isFinderTopLeft = r < 7 && c < 7;
+        const isFinderTopRight = r < 7 && c >= cells - 7;
+        const isFinderBottomLeft = r >= cells - 7 && c < 7;
+        if (isFinderTopLeft || isFinderTopRight || isFinderBottomLeft) {
+          const rr = isFinderTopLeft ? r : isFinderTopRight ? r : r - (cells - 7);
+          const cc = isFinderTopLeft ? c : isFinderTopRight ? c - (cells - 7) : c;
+          if (rr === 0 || rr === 6 || cc === 0 || cc === 6 || (rr >= 2 && rr <= 4 && cc >= 2 && cc <= 4)) {
+            ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+          }
+        } else {
+          const seed = (r * cells + c + hash) * 1103515245;
+          if ((seed >> 16) & 1) ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+  }, [value, size]);
+  return <canvas ref={canvasRef} width={size} height={size} style={{ borderRadius: 8, border: `1px solid ${COLORS.border}` }} />;
+}
+
+function StarRating({ rating }) {
+  return (
+    <span style={{ display: "inline-flex", gap: 2, alignItems: "center" }}>
+      {[1, 2, 3, 4, 5].map(i => (
+        <span key={i} style={{ color: i <= Math.round(rating) ? COLORS.warning : COLORS.border, fontSize: 14 }}>★</span>
+      ))}
+      <span style={{ fontSize: 13, color: COLORS.muted, marginLeft: 4, fontFamily: "'DM Sans', sans-serif" }}>{rating}</span>
+    </span>
+  );
+}
+
+function ProgressBar({ value, max, color = COLORS.accent }) {
+  const pct = Math.min(100, Math.round((value / max) * 100));
+  return (
+    <div style={{ background: COLORS.light, borderRadius: 99, height: 6, overflow: "hidden" }}>
+      <div style={{ width: `${pct}%`, background: color, height: "100%", borderRadius: 99, transition: "width 0.5s" }} />
+    </div>
+  );
+}
+
+function Modal({ open, onClose, children, title, width = 560 }) {
+  if (!open) return null;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20 }} onClick={onClose}>
+      <div style={{ background: COLORS.card, borderRadius: 20, width: "100%", maxWidth: width, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 25px 60px rgba(0,0,0,0.25)" }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: "24px 28px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ margin: 0, fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700 }}>{title}</h2>
+          <button onClick={onClose} style={{ background: COLORS.light, border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 18, color: COLORS.muted, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+        </div>
+        <div style={{ padding: 28 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Input({ label, ...props }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      {label && <label style={{ display: "block", fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: COLORS.muted, marginBottom: 6 }}>{label}</label>}
+      <input {...props} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${COLORS.border}`, fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: COLORS.text, background: COLORS.bg, outline: "none", boxSizing: "border-box", ...props.style }} />
+    </div>
+  );
+}
+
+function Textarea({ label, ...props }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      {label && <label style={{ display: "block", fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: COLORS.muted, marginBottom: 6 }}>{label}</label>}
+      <textarea {...props} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${COLORS.border}`, fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: COLORS.text, background: COLORS.bg, outline: "none", resize: "vertical", boxSizing: "border-box", ...props.style }} />
+    </div>
+  );
+}
+
+function Select({ label, children, ...props }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      {label && <label style={{ display: "block", fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: COLORS.muted, marginBottom: 6 }}>{label}</label>}
+      <select {...props} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${COLORS.border}`, fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: COLORS.text, background: COLORS.bg, outline: "none", boxSizing: "border-box" }}>
+        {children}
+      </select>
+    </div>
+  );
+}
+
+function Btn({ children, onClick, variant = "primary", small, disabled, style: s }) {
+  const variants = {
+    primary: { background: COLORS.accent, color: "#fff", border: "none" },
+    outline: { background: "transparent", color: COLORS.accent, border: `1.5px solid ${COLORS.accent}` },
+    ghost: { background: "transparent", color: COLORS.muted, border: `1.5px solid ${COLORS.border}` },
+    danger: { background: COLORS.danger, color: "#fff", border: "none" },
+    success: { background: COLORS.success, color: "#fff", border: "none" },
+  };
+  return (
+    <button onClick={onClick} disabled={disabled} style={{ ...variants[variant], padding: small ? "8px 16px" : "11px 22px", borderRadius: 10, fontFamily: "'DM Sans', sans-serif", fontSize: small ? 13 : 14, fontWeight: 500, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1, transition: "all 0.15s", display: "inline-flex", alignItems: "center", gap: 6, ...s }}>
+      {children}
+    </button>
+  );
+}
+
+function EventCard({ event, onClick, wishlisted, onWishlist }) {
+  const totalSold = event.tickets.reduce((a, t) => a + t.sold, 0);
+  const totalCap = event.tickets.reduce((a, t) => a + t.capacity, 0);
+  const minPrice = Math.min(...event.tickets.map(t => t.price));
+  return (
+    <div onClick={onClick} style={{ background: COLORS.card, borderRadius: 16, border: `1px solid ${COLORS.border}`, overflow: "hidden", cursor: "pointer", transition: "transform 0.2s, box-shadow 0.2s" }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(99,102,241,0.12)"; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}>
+      <div style={{ position: "relative", height: 160, overflow: "hidden" }}>
+        <img src={event.banner} alt={event.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.background = COLORS.accentBg; }} />
+        <div style={{ position: "absolute", top: 12, left: 12 }}><Badge color="accent">{event.category}</Badge></div>
+        <button onClick={e => { e.stopPropagation(); onWishlist(event.id); }} style={{ position: "absolute", top: 10, right: 12, background: "rgba(255,255,255,0.9)", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {wishlisted ? "❤️" : "🤍"}
+        </button>
+      </div>
+      <div style={{ padding: "16px 18px" }}>
+        <h3 style={{ margin: "0 0 6px", fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, color: COLORS.text, lineHeight: 1.3 }}>{event.name}</h3>
+        <div style={{ display: "flex", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 12, color: COLORS.muted, fontFamily: "'DM Sans', sans-serif" }}>📅 {event.date}</span>
+          <span style={{ fontSize: 12, color: COLORS.muted, fontFamily: "'DM Sans', sans-serif" }}>📍 {event.city}</span>
+          <span style={{ fontSize: 12, color: COLORS.muted, fontFamily: "'DM Sans', sans-serif" }}>{event.type === "online" ? "🌐 Online" : "🏛 Physical"}</span>
+        </div>
+        <ProgressBar value={totalSold} max={totalCap} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+          <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 15, fontWeight: 700, color: minPrice === 0 ? COLORS.success : COLORS.accent }}>
+            {minPrice === 0 ? "FREE" : `₹${minPrice}`}
+          </span>
+          <StarRating rating={event.rating} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EventDetail({ event, onBack, onRegister, wishlisted, onWishlist, currentUser }) {
+  const [activeTab, setActiveTab] = useState("overview");
+  const [selectedTickets, setSelectedTickets] = useState({});
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedback, setFeedback] = useState({ rating: 5, comment: "" });
+  const tabs = ["overview", "agenda", "speakers", "FAQ", "reviews"];
+
+  const total = Object.entries(selectedTickets).reduce((sum, [type, qty]) => {
+    const t = event.tickets.find(t => t.type === type);
+    return sum + (t ? t.price * qty : 0);
+  }, 0);
+  const totalQty = Object.values(selectedTickets).reduce((a, b) => a + b, 0);
+
+  return (
+    <div>
+      <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.accent, fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 500, marginBottom: 20, display: "flex", alignItems: "center", gap: 6 }}>← Back to Events</button>
+      <div style={{ borderRadius: 20, overflow: "hidden", border: `1px solid ${COLORS.border}`, background: COLORS.card }}>
+        <div style={{ position: "relative", height: 280 }}>
+          <img src={event.banner} alt={event.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(15,23,42,0.8) 0%, transparent 50%)" }} />
+          <div style={{ position: "absolute", bottom: 24, left: 28, right: 28 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+              <Badge color="accent">{event.category}</Badge>
+              <Badge color={event.type === "online" ? "success" : "gray"}>{event.type === "online" ? "Online" : "Physical"}</Badge>
+            </div>
+            <h1 style={{ margin: 0, fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, color: "#fff" }}>{event.name}</h1>
+          </div>
+          <button onClick={() => onWishlist(event.id)} style={{ position: "absolute", top: 20, right: 24, background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)", border: "none", borderRadius: 10, padding: "8px 14px", cursor: "pointer", color: "#fff", fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
+            {wishlisted ? "❤️ Wishlisted" : "🤍 Wishlist"}
+          </button>
+        </div>
+
+        <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${COLORS.border}`, padding: "0 24px" }}>
+          {tabs.map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)} style={{ background: "none", border: "none", borderBottom: activeTab === tab ? `2px solid ${COLORS.accent}` : "2px solid transparent", padding: "14px 16px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: activeTab === tab ? 600 : 400, color: activeTab === tab ? COLORS.accent : COLORS.muted, textTransform: "capitalize" }}>
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 0 }}>
+          <div style={{ padding: 28, borderRight: `1px solid ${COLORS.border}` }}>
+            {activeTab === "overview" && (
+              <div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+                  {[{ icon: "📅", label: "Date", value: event.date }, { icon: "🕐", label: "Time", value: event.time }, { icon: "📍", label: "Venue", value: event.venue }, { icon: "🏙", label: "City", value: event.city }].map(item => (
+                    <div key={item.label} style={{ background: COLORS.bg, borderRadius: 12, padding: 16 }}>
+                      <div style={{ fontSize: 20 }}>{item.icon}</div>
+                      <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: COLORS.muted, marginTop: 4 }}>{item.label}</div>
+                      <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 500, color: COLORS.text }}>{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+                <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 10 }}>About</h3>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: COLORS.muted, lineHeight: 1.7, margin: "0 0 20px" }}>{event.description}</p>
+                <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 10 }}>Venue Map</h3>
+                <div style={{ background: COLORS.accentBg, borderRadius: 12, height: 140, display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.accent, fontFamily: "'DM Sans', sans-serif", fontSize: 14 }}>
+                  📍 {event.venue}, {event.city} — Map integration (Google Maps API)
+                </div>
+                <div style={{ marginTop: 20, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {event.tags.map(tag => <Badge key={tag} color="gray">#{tag}</Badge>)}
+                </div>
+              </div>
+            )}
+            {activeTab === "agenda" && (
+              <div>
+                <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Event Schedule</h3>
+                {event.agenda.map((item, i) => (
+                  <div key={i} style={{ display: "flex", gap: 16, marginBottom: 16, alignItems: "flex-start" }}>
+                    <div style={{ background: COLORS.accentBg, borderRadius: 8, padding: "8px 12px", minWidth: 80, textAlign: "center", fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 600, color: COLORS.accent }}>{item.time}</div>
+                    <div style={{ flex: 1, paddingTop: 8 }}>
+                      <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 500, color: COLORS.text }}>{item.title}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {activeTab === "speakers" && (
+              <div>
+                <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Speakers</h3>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  {event.speakers.map((s, i) => (
+                    <div key={i} style={{ background: COLORS.bg, borderRadius: 12, padding: 20, textAlign: "center" }}>
+                      <div style={{ width: 56, height: 56, borderRadius: "50%", background: COLORS.accentBg, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", fontSize: 20, color: COLORS.accent, fontFamily: "'Syne', sans-serif", fontWeight: 700 }}>{s[0]}</div>
+                      <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 500 }}>{s}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {activeTab === "FAQ" && (
+              <div>
+                <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Frequently Asked Questions</h3>
+                {event.faq.map((f, i) => (
+                  <div key={i} style={{ marginBottom: 16, borderLeft: `3px solid ${COLORS.accent}`, paddingLeft: 16 }}>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{f.q}</div>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: COLORS.muted }}>{f.a}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {activeTab === "reviews" && (
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                  <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, margin: 0 }}>Reviews ({event.reviews})</h3>
+                  <Btn small onClick={() => setShowFeedback(true)}>Write Review</Btn>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 20, background: COLORS.bg, borderRadius: 12, padding: 20, marginBottom: 20 }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 48, fontWeight: 800, color: COLORS.text }}>{event.rating}</div>
+                    <StarRating rating={event.rating} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    {[5, 4, 3, 2, 1].map(r => <div key={r} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, fontFamily: "'DM Sans', sans-serif", minWidth: 8 }}>{r}</span>
+                      <ProgressBar value={r === 5 ? 70 : r === 4 ? 20 : 5} max={100} color={COLORS.warning} />
+                    </div>)}
+                  </div>
+                </div>
+                {showFeedback && (
+                  <div style={{ background: COLORS.bg, borderRadius: 12, padding: 20, marginBottom: 20 }}>
+                    <h4 style={{ fontFamily: "'Syne', sans-serif", margin: "0 0 12px" }}>Your Review</h4>
+                    <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                      {[1, 2, 3, 4, 5].map(r => (
+                        <span key={r} onClick={() => setFeedback(f => ({ ...f, rating: r }))} style={{ fontSize: 24, cursor: "pointer", color: r <= feedback.rating ? COLORS.warning : COLORS.border }}>★</span>
+                      ))}
+                    </div>
+                    <Textarea value={feedback.comment} onChange={e => setFeedback(f => ({ ...f, comment: e.target.value }))} placeholder="Share your experience..." rows={3} />
+                    <Btn onClick={() => { alert("Review submitted! Thank you."); setShowFeedback(false); }}>Submit Review</Btn>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ padding: 24 }}>
+            <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Get Tickets</h3>
+            {event.tickets.map(t => (
+              <div key={t.type} style={{ background: COLORS.bg, borderRadius: 12, padding: 16, marginBottom: 12, border: selectedTickets[t.type] ? `2px solid ${COLORS.accent}` : `1px solid ${COLORS.border}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600 }}>{t.type}</div>
+                  <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 15, fontWeight: 700, color: t.price === 0 ? COLORS.success : COLORS.accent }}>
+                    {t.price === 0 ? "FREE" : `₹${t.price}`}
+                  </div>
+                </div>
+                <ProgressBar value={t.sold} max={t.capacity} />
+                <div style={{ fontSize: 11, color: COLORS.muted, fontFamily: "'DM Sans', sans-serif", margin: "6px 0 10px" }}>{t.capacity - t.sold} spots left</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <button onClick={() => setSelectedTickets(s => ({ ...s, [t.type]: Math.max(0, (s[t.type] || 0) - 1) }))} style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${COLORS.border}`, background: COLORS.card, cursor: "pointer", fontSize: 16 }}>-</button>
+                  <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, minWidth: 20, textAlign: "center" }}>{selectedTickets[t.type] || 0}</span>
+                  <button onClick={() => setSelectedTickets(s => ({ ...s, [t.type]: Math.min(t.capacity - t.sold, (s[t.type] || 0) + 1) }))} style={{ width: 28, height: 28, borderRadius: 8, border: `1px solid ${COLORS.border}`, background: COLORS.card, cursor: "pointer", fontSize: 16 }}>+</button>
+                </div>
+              </div>
+            ))}
+            {totalQty > 0 && (
+              <div style={{ background: COLORS.accentBg, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'DM Sans', sans-serif", fontSize: 14, marginBottom: 8 }}>
+                  <span style={{ color: COLORS.muted }}>{totalQty} ticket(s)</span>
+                  <span style={{ fontWeight: 700, color: COLORS.accent }}>₹{total}</span>
+                </div>
+                <Input label="Discount Code" placeholder="EARLYBIRD20" style={{ marginBottom: 0 }} />
+              </div>
+            )}
+            <Btn disabled={totalQty === 0} onClick={() => onRegister(event, selectedTickets, total)} style={{ width: "100%" }}>
+              {totalQty === 0 ? "Select Tickets" : total === 0 ? "Register Free" : `Pay ₹${total}`}
+            </Btn>
+            <div style={{ marginTop: 16, padding: "12px 16px", background: COLORS.bg, borderRadius: 10 }}>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>🔗 Attendee Networking</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: COLORS.muted }}>Opt-in to share your LinkedIn with other attendees after registration.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CheckoutModal({ open, onClose, event, tickets, total, onConfirm }) {
+  const [step, setStep] = useState(1);
+  const [payInfo, setPayInfo] = useState({ name: "", email: "", phone: "", card: "", expiry: "", cvv: "" });
+  const [loading, setLoading] = useState(false);
+
+  const handlePay = () => {
+    setLoading(true);
+    setTimeout(() => { setLoading(false); setStep(3); onConfirm(); }, 2000);
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title={step === 3 ? "🎉 Booking Confirmed!" : "Complete Your Booking"} width={500}>
+      {step === 1 && (
+        <div>
+          <div style={{ background: COLORS.bg, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 15, fontWeight: 700, marginBottom: 8 }}>{event?.name}</div>
+            {tickets && Object.entries(tickets).filter(([, q]) => q > 0).map(([type, qty]) => {
+              const t = event?.tickets.find(t => t.type === type);
+              return <div key={type} style={{ display: "flex", justifyContent: "space-between", fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: COLORS.muted, marginBottom: 4 }}>
+                <span>{type} × {qty}</span>
+                <span>₹{(t?.price || 0) * qty}</span>
+              </div>;
+            })}
+            <div style={{ borderTop: `1px solid ${COLORS.border}`, marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", fontFamily: "'Syne', sans-serif", fontWeight: 700 }}>
+              <span>Total</span><span style={{ color: COLORS.accent }}>₹{total}</span>
+            </div>
+          </div>
+          <Input label="Full Name" value={payInfo.name} onChange={e => setPayInfo(p => ({ ...p, name: e.target.value }))} placeholder="Ravi Kumar" />
+          <Input label="Email" type="email" value={payInfo.email} onChange={e => setPayInfo(p => ({ ...p, email: e.target.value }))} placeholder="ravi@example.com" />
+          <Input label="Phone" value={payInfo.phone} onChange={e => setPayInfo(p => ({ ...p, phone: e.target.value }))} placeholder="+91 98765 43210" />
+          <Btn onClick={() => setStep(2)} style={{ width: "100%" }} disabled={!payInfo.name || !payInfo.email}>Continue to Payment →</Btn>
+        </div>
+      )}
+      {step === 2 && (
+        <div>
+          <div style={{ background: COLORS.accentBg, borderRadius: 10, padding: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20 }}>🔒</span>
+            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: COLORS.muted }}>Sandbox mode — no real charges. Use any test card.</span>
+          </div>
+          <Input label="Card Number" placeholder="4111 1111 1111 1111" value={payInfo.card} onChange={e => setPayInfo(p => ({ ...p, card: e.target.value }))} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Input label="Expiry" placeholder="MM/YY" value={payInfo.expiry} onChange={e => setPayInfo(p => ({ ...p, expiry: e.target.value }))} />
+            <Input label="CVV" placeholder="123" value={payInfo.cvv} onChange={e => setPayInfo(p => ({ ...p, cvv: e.target.value }))} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ background: COLORS.bg, borderRadius: 8, padding: 12, textAlign: "center", border: `1px solid ${COLORS.border}`, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontSize: 13 }}>💳 Razorpay</div>
+            <div style={{ background: COLORS.bg, borderRadius: 8, padding: 12, textAlign: "center", border: `1px solid ${COLORS.border}`, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontSize: 13 }}>📱 UPI / GPay</div>
+          </div>
+          <Btn onClick={handlePay} style={{ width: "100%", marginTop: 16 }} disabled={loading}>
+            {loading ? "Processing..." : `Pay ₹${total}`}
+          </Btn>
+        </div>
+      )}
+      {step === 3 && (
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 60, marginBottom: 16 }}>🎟️</div>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", color: COLORS.muted, marginBottom: 20 }}>Your ticket has been confirmed. Show the QR code at entry.</p>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+            <QRCode value={`ES-${event?.id}-${Date.now()}`} size={140} />
+          </div>
+          <Badge color="success">Ticket confirmed • {payInfo.email}</Badge>
+          <div style={{ marginTop: 20 }}>
+            <Btn onClick={onClose} style={{ width: "100%" }}>Go to My Tickets</Btn>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function MyTickets({ bookings }) {
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  if (bookings.length === 0) {
+    return (
+      <div style={{ textAlign: "center", padding: 60 }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🎟️</div>
+        <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700 }}>No tickets yet</h3>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", color: COLORS.muted }}>Browse events and register to see your tickets here.</p>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, marginBottom: 24 }}>My Tickets</h2>
+      <div style={{ display: "grid", gap: 16 }}>
+        {bookings.map((b, i) => (
+          <div key={i} style={{ background: COLORS.card, borderRadius: 16, border: `1px solid ${COLORS.border}`, overflow: "hidden", display: "flex" }}>
+            <div style={{ width: 6, background: COLORS.accent }} />
+            <div style={{ flex: 1, padding: "20px 24px", display: "flex", gap: 20, alignItems: "center" }}>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, margin: "0 0 6px" }}>{b.eventName}</h3>
+                <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: COLORS.muted }}>📅 {b.date}</span>
+                  {Object.entries(b.tickets).filter(([, q]) => q > 0).map(([type, qty]) => (
+                    <Badge key={type} color="accent" small>{qty}x {type}</Badge>
+                  ))}
+                  <Badge color={b.total === 0 ? "success" : "accent"} small>{b.total === 0 ? "FREE" : `₹${b.total} paid`}</Badge>
+                </div>
+              </div>
+              <Btn small variant="outline" onClick={() => setSelectedBooking(b)}>View QR</Btn>
+            </div>
+          </div>
+        ))}
+      </div>
+      <Modal open={!!selectedBooking} onClose={() => setSelectedBooking(null)} title="Your Ticket QR Code" width={360}>
+        {selectedBooking && (
+          <div style={{ textAlign: "center" }}>
+            <h3 style={{ fontFamily: "'Syne', sans-serif", marginBottom: 4 }}>{selectedBooking.eventName}</h3>
+            <p style={{ color: COLORS.muted, fontFamily: "'DM Sans', sans-serif", fontSize: 14, marginBottom: 20 }}>Show this at the venue entrance</p>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+              <QRCode value={selectedBooking.qrCode} size={180} />
+            </div>
+            <code style={{ fontSize: 12, color: COLORS.muted, fontFamily: "monospace" }}>{selectedBooking.qrCode}</code>
+            <div style={{ marginTop: 16 }}><Btn small onClick={() => alert("Download feature: PDF ticket generation via backend")} style={{ width: "100%" }}>📥 Download PDF Ticket</Btn></div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}
+
+function OrganiserDashboard({ events }) {
+  const [activeEvent, setActiveEvent] = useState(events[0]);
+  const [checkinCode, setCheckinCode] = useState("");
+  const [checkedIn, setCheckedIn] = useState([]);
+  const [checkinMsg, setCheckinMsg] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [newEvent, setNewEvent] = useState({ name: "", category: "Tech", date: "", time: "", city: "", venue: "", type: "physical", description: "", bulletPoints: "" });
+
+  const totalRevenue = events.reduce((sum, e) => sum + e.tickets.reduce((s, t) => s + t.price * t.sold, 0), 0);
+  const totalAttendees = events.reduce((sum, e) => sum + e.tickets.reduce((s, t) => s + t.sold, 0), 0);
+
+  const handleCheckin = () => {
+    if (!checkinCode.trim()) return;
+    if (checkedIn.includes(checkinCode)) {
+      setCheckinMsg({ type: "warning", text: "Already checked in!" });
+    } else {
+      setCheckedIn(c => [...c, checkinCode]);
+      setCheckinMsg({ type: "success", text: `✓ Checked in: ${checkinCode}` });
+    }
+    setCheckinCode("");
+    setTimeout(() => setCheckinMsg(null), 3000);
+  };
+
+  const generateAIDescription = async () => {
+    if (!newEvent.bulletPoints.trim()) return alert("Please enter bullet points first.");
+    setAiLoading(true);
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: `You are an expert event copywriter. Convert these bullet points into a compelling, polished event description (2-3 paragraphs, no markdown):\n\n${newEvent.bulletPoints}` }]
+        })
+      });
+      const data = await res.json();
+      const desc = data.content?.find(b => b.type === "text")?.text || "Description generated.";
+      setNewEvent(e => ({ ...e, description: desc }));
+    } catch {
+      setNewEvent(e => ({ ...e, description: "AI description unavailable. Please write manually." }));
+    }
+    setAiLoading(false);
+  };
+
+  const exportCSV = () => {
+    const rows = [["Name", "Email", "Ticket", "Status"]];
+    activeEvent.tickets.forEach(t => {
+      for (let i = 0; i < t.sold; i++) {
+        rows.push([`Attendee ${i + 1}`, `attendee${i + 1}@example.com`, t.type, checkedIn.includes(`ES-${activeEvent.id}-${i}`) ? "Checked In" : "Registered"]);
+      }
+    });
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `${activeEvent.name}-attendees.csv`; a.click();
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, margin: 0 }}>Organiser Dashboard</h2>
+        <Btn onClick={() => setShowCreateModal(true)}>+ Create Event</Btn>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
+        {[
+          { label: "Total Events", value: events.length, icon: "📅", color: COLORS.accent },
+          { label: "Total Attendees", value: totalAttendees, icon: "👥", color: COLORS.success },
+          { label: "Revenue", value: `₹${totalRevenue.toLocaleString()}`, icon: "💰", color: COLORS.warning },
+          { label: "Checked In", value: checkedIn.length, icon: "✅", color: "#6366f1" },
+        ].map(s => (
+          <div key={s.label} style={{ background: COLORS.card, borderRadius: 14, padding: 20, border: `1px solid ${COLORS.border}` }}>
+            <div style={{ fontSize: 24, marginBottom: 8 }}>{s.icon}</div>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, color: s.color }}>{s.value}</div>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: COLORS.muted }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div style={{ background: COLORS.card, borderRadius: 16, border: `1px solid ${COLORS.border}`, padding: 24 }}>
+          <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, margin: "0 0 16px" }}>Your Events</h3>
+          {events.map(e => (
+            <div key={e.id} onClick={() => setActiveEvent(e)} style={{ padding: "12px 14px", borderRadius: 10, cursor: "pointer", marginBottom: 8, background: activeEvent?.id === e.id ? COLORS.accentBg : COLORS.bg, border: `1px solid ${activeEvent?.id === e.id ? COLORS.accentLight : COLORS.border}` }}>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 500, color: activeEvent?.id === e.id ? COLORS.accent : COLORS.text }}>{e.name}</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: COLORS.muted, marginTop: 4 }}>{e.tickets.reduce((s, t) => s + t.sold, 0)} registrations · ₹{e.tickets.reduce((s, t) => s + t.price * t.sold, 0).toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+
+        <div>
+          <div style={{ background: COLORS.card, borderRadius: 16, border: `1px solid ${COLORS.border}`, padding: 24, marginBottom: 20 }}>
+            <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, margin: "0 0 4px" }}>Check-In Panel</h3>
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: COLORS.muted, marginBottom: 16 }}>{activeEvent?.name}</p>
+            <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+              <input value={checkinCode} onChange={e => setCheckinCode(e.target.value)} onKeyDown={e => e.key === "Enter" && handleCheckin()} placeholder="Enter ticket code or scan QR..." style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${COLORS.border}`, fontFamily: "'DM Sans', sans-serif", fontSize: 14, outline: "none" }} />
+              <Btn onClick={handleCheckin}>Check In</Btn>
+            </div>
+            {checkinMsg && <div style={{ padding: "10px 14px", borderRadius: 8, background: checkinMsg.type === "success" ? COLORS.successBg : "#fef3c7", fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: checkinMsg.type === "success" ? COLORS.success : "#92400e", marginBottom: 12 }}>{checkinMsg.text}</div>}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+              <div style={{ background: COLORS.bg, borderRadius: 10, padding: 14, textAlign: "center" }}>
+                <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, color: COLORS.accent }}>{activeEvent?.tickets.reduce((s, t) => s + t.sold, 0)}</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: COLORS.muted }}>Registered</div>
+              </div>
+              <div style={{ background: COLORS.successBg, borderRadius: 10, padding: 14, textAlign: "center" }}>
+                <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, color: COLORS.success }}>{checkedIn.length}</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: COLORS.success }}>Checked In</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ background: COLORS.card, borderRadius: 16, border: `1px solid ${COLORS.border}`, padding: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, margin: 0 }}>Ticket Sales</h3>
+              <Btn small variant="outline" onClick={exportCSV}>📥 Export CSV</Btn>
+            </div>
+            {activeEvent?.tickets.map(t => (
+              <div key={t.type} style={{ marginBottom: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'DM Sans', sans-serif", fontSize: 13, marginBottom: 4 }}>
+                  <span style={{ fontWeight: 500 }}>{t.type}</span>
+                  <span style={{ color: COLORS.muted }}>{t.sold}/{t.capacity}</span>
+                </div>
+                <ProgressBar value={t.sold} max={t.capacity} color={t.type === "VIP" ? COLORS.warning : COLORS.accent} />
+                <div style={{ fontSize: 12, color: COLORS.muted, fontFamily: "'DM Sans', sans-serif", marginTop: 4 }}>Revenue: ₹{(t.price * t.sold).toLocaleString()}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} title="Create New Event" width={600}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Input label="Event Name" value={newEvent.name} onChange={e => setNewEvent(n => ({ ...n, name: e.target.value }))} placeholder="My Amazing Event" />
+          <Select label="Category" value={newEvent.category} onChange={e => setNewEvent(n => ({ ...n, category: e.target.value }))}>
+            {CATEGORIES.filter(c => c !== "All").map(c => <option key={c}>{c}</option>)}
+          </Select>
+          <Input label="Date" type="date" value={newEvent.date} onChange={e => setNewEvent(n => ({ ...n, date: e.target.value }))} />
+          <Input label="Time" type="time" value={newEvent.time} onChange={e => setNewEvent(n => ({ ...n, time: e.target.value }))} />
+          <Input label="City" value={newEvent.city} onChange={e => setNewEvent(n => ({ ...n, city: e.target.value }))} placeholder="Chennai" />
+          <Select label="Type" value={newEvent.type} onChange={e => setNewEvent(n => ({ ...n, type: e.target.value }))}>
+            <option value="physical">Physical</option>
+            <option value="online">Online</option>
+          </Select>
+        </div>
+        <Input label="Venue" value={newEvent.venue} onChange={e => setNewEvent(n => ({ ...n, venue: e.target.value }))} placeholder="Conference Hall, Tech Park" />
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500, color: COLORS.muted, marginBottom: 6 }}>🤖 AI Description Generator</label>
+          <Textarea value={newEvent.bulletPoints} onChange={e => setNewEvent(n => ({ ...n, bulletPoints: e.target.value }))} placeholder={"Enter bullet points:\n• 200+ developers\n• 24-hour hackathon\n• ₹50L prize pool"} rows={4} />
+          <Btn small onClick={generateAIDescription} disabled={aiLoading} variant="outline">
+            {aiLoading ? "⏳ Generating..." : "✨ Generate with AI"}
+          </Btn>
+        </div>
+        <Textarea label="Final Description" value={newEvent.description} onChange={e => setNewEvent(n => ({ ...n, description: e.target.value }))} placeholder="Event description will appear here..." rows={4} />
+        <Btn onClick={() => { alert("Event created! (Connect to backend to persist)"); setShowCreateModal(false); }} style={{ width: "100%" }}>Create Event</Btn>
+      </Modal>
+    </div>
+  );
+}
+
+function AIRecommendations({ events, wishlist, bookings }) {
+  const [recommendations, setRecommendations] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [schedule, setSchedule] = useState(null);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+
+  const getRecommendations = async () => {
+    setLoading(true);
+    const booked = bookings.map(b => b.eventName);
+    const wishlisted = events.filter(e => wishlist.includes(e.id)).map(e => e.name);
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: `You are an event recommendation AI. Based on:\nAttended: ${booked.join(", ") || "none"}\nWishlisted: ${wishlisted.join(", ") || "none"}\nAvailable events: ${events.map(e => e.name + " (" + e.category + ")").join(", ")}\n\nRespond ONLY with a JSON array of 3 objects: [{id: number, reason: string}]. No markdown, no explanation.` }]
+        })
+      });
+      const data = await res.json();
+      const text = data.content?.find(b => b.type === "text")?.text || "[]";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const recs = JSON.parse(clean);
+      setRecommendations(recs);
+    } catch {
+      setRecommendations(events.slice(0, 3).map(e => ({ id: e.id, reason: "Trending in your area" })));
+    }
+    setLoading(false);
+  };
+
+  const buildSmartSchedule = async () => {
+    setScheduleLoading(true);
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: `You are a conference schedule optimizer. Given these sessions: Opening (60min, speaker: CEO), AI Workshop (90min, hands-on, morning preferred), Lunch Break (45min, fixed at 1pm), Networking (60min, afternoon), Closing Ceremony (30min, last). Suggest optimal ordering for best audience flow and speaker availability. Respond as JSON array: [{time: string, title: string, duration: string, reason: string}]. No markdown.` }]
+        })
+      });
+      const data = await res.json();
+      const text = data.content?.find(b => b.type === "text")?.text || "[]";
+      const clean = text.replace(/```json|```/g, "").trim();
+      setSchedule(JSON.parse(clean));
+    } catch {
+      setSchedule([{ time: "9:00 AM", title: "Opening", duration: "60min", reason: "Sets the tone" }, { time: "10:00 AM", title: "AI Workshop", duration: "90min", reason: "Peak energy time" }]);
+    }
+    setScheduleLoading(false);
+  };
+
+  return (
+    <div>
+      <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, marginBottom: 8 }}>AI Features</h2>
+      <p style={{ fontFamily: "'DM Sans', sans-serif", color: COLORS.muted, marginBottom: 28 }}>Powered by Claude AI</p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div style={{ background: COLORS.card, borderRadius: 16, border: `1px solid ${COLORS.border}`, padding: 24 }}>
+          <div style={{ fontSize: 28, marginBottom: 12 }}>🎯</div>
+          <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>Event Recommendations</h3>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>Based on your past activity and wishlist, Claude suggests events you'll love.</p>
+          <Btn onClick={getRecommendations} disabled={loading} small>{loading ? "⏳ Thinking..." : "Get Recommendations"}</Btn>
+          {recommendations.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              {recommendations.map((r, i) => {
+                const e = events.find(ev => ev.id === r.id);
+                if (!e) return null;
+                return (
+                  <div key={i} style={{ background: COLORS.bg, borderRadius: 10, padding: 14, marginBottom: 10 }}>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600 }}>{e.name}</div>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: COLORS.accent, marginTop: 4 }}>✨ {r.reason}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div style={{ background: COLORS.card, borderRadius: 16, border: `1px solid ${COLORS.border}`, padding: 24 }}>
+          <div style={{ fontSize: 28, marginBottom: 12 }}>🗓️</div>
+          <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 16, fontWeight: 700, margin: "0 0 8px" }}>Smart Schedule Builder</h3>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>AI suggests optimal session ordering based on speaker availability and audience energy.</p>
+          <Btn onClick={buildSmartSchedule} disabled={scheduleLoading} small>{scheduleLoading ? "⏳ Optimizing..." : "Build Schedule"}</Btn>
+          {schedule && (
+            <div style={{ marginTop: 16 }}>
+              {schedule.map((s, i) => (
+                <div key={i} style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "flex-start" }}>
+                  <div style={{ background: COLORS.accentBg, borderRadius: 8, padding: "6px 10px", minWidth: 72, textAlign: "center", fontFamily: "'DM Sans', sans-serif", fontSize: 11, fontWeight: 600, color: COLORS.accent }}>{s.time}</div>
+                  <div>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 500 }}>{s.title}</div>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: COLORS.muted }}>{s.reason}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EventSphere() {
+  const [page, setPage] = useState("browse");
+  const [events] = useState(initialEvents);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [wishlist, setWishlist] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [checkoutData, setCheckoutData] = useState(null);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [filters, setFilters] = useState({ category: "All", city: "", type: "all", price: "all", search: "" });
+  const [notifications, setNotifications] = useState([{ id: 1, text: "DevFusion Hackathon starts in 3 days!", time: "2h ago" }, { id: 2, text: "Your ticket for AI Summit is confirmed.", time: "1d ago" }]);
+
+  const toggleWishlist = (id) => {
+    setWishlist(w => w.includes(id) ? w.filter(x => x !== id) : [...w, id]);
+  };
+
+  const filteredEvents = events.filter(e => {
+    if (filters.category !== "All" && e.category !== filters.category) return false;
+    if (filters.city && !e.city.toLowerCase().includes(filters.city.toLowerCase())) return false;
+    if (filters.type !== "all" && e.type !== filters.type) return false;
+    if (filters.price === "free" && Math.min(...e.tickets.map(t => t.price)) > 0) return false;
+    if (filters.price === "paid" && Math.min(...e.tickets.map(t => t.price)) === 0) return false;
+    if (filters.search && !e.name.toLowerCase().includes(filters.search.toLowerCase()) && !e.tags.join(" ").toLowerCase().includes(filters.search.toLowerCase())) return false;
+    return true;
+  });
+
+  const navItems = [
+    { id: "browse", label: "Browse Events", icon: "🔍" },
+    { id: "tickets", label: "My Tickets", icon: "🎟️", badge: bookings.length },
+    { id: "wishlist", label: "Wishlist", icon: "❤️", badge: wishlist.length },
+    { id: "organiser", label: "Dashboard", icon: "📊" },
+    { id: "ai", label: "AI Features", icon: "✨" },
+  ];
+
+  return (
+    <>
+      <style>{FONTS}</style>
+      <div style={{ minHeight: "100vh", background: COLORS.bg, fontFamily: "'DM Sans', sans-serif" }}>
+        <header style={{ background: COLORS.card, borderBottom: `1px solid ${COLORS.border}`, position: "sticky", top: 0, zIndex: 100 }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 22, fontWeight: 800, color: COLORS.text }}>
+              Event<span style={{ color: COLORS.accent }}>Sphere</span>
+            </div>
+            <nav style={{ display: "flex", gap: 4 }}>
+              {navItems.map(item => (
+                <button key={item.id} onClick={() => { setPage(item.id); setSelectedEvent(null); }} style={{ background: page === item.id ? COLORS.accentBg : "transparent", color: page === item.id ? COLORS.accent : COLORS.muted, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: page === item.id ? 600 : 400, display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
+                  {item.icon} {item.label}
+                  {item.badge > 0 && <span style={{ background: COLORS.accent, color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 700, padding: "1px 6px", minWidth: 16, textAlign: "center" }}>{item.badge}</span>}
+                </button>
+              ))}
+            </nav>
+            <div style={{ position: "relative" }}>
+              <button style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 10, width: 38, height: 38, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>🔔
+                {notifications.length > 0 && <span style={{ position: "absolute", top: 6, right: 6, width: 8, height: 8, background: COLORS.danger, borderRadius: "50%" }} />}
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <main style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px" }}>
+          {page === "browse" && !selectedEvent && (
+            <div>
+              <div style={{ marginBottom: 32 }}>
+                <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: 36, fontWeight: 800, margin: "0 0 8px", color: COLORS.text }}>Discover Events</h1>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", color: COLORS.muted, fontSize: 16 }}>Find and book events that matter to you</p>
+              </div>
+
+              <div style={{ background: COLORS.card, borderRadius: 16, border: `1px solid ${COLORS.border}`, padding: 20, marginBottom: 28 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 12 }}>
+                  <input value={filters.search} onChange={e => setFilters(f => ({ ...f, search: e.target.value }))} placeholder="🔍 Search events..." style={{ padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${COLORS.border}`, fontFamily: "'DM Sans', sans-serif", fontSize: 14, outline: "none", background: COLORS.bg }} />
+                  <select value={filters.category} onChange={e => setFilters(f => ({ ...f, category: e.target.value }))} style={{ padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${COLORS.border}`, fontFamily: "'DM Sans', sans-serif", fontSize: 13, background: COLORS.bg, color: COLORS.text }}>
+                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                  <input value={filters.city} onChange={e => setFilters(f => ({ ...f, city: e.target.value }))} placeholder="📍 City" style={{ padding: "10px 14px", borderRadius: 10, border: `1.5px solid ${COLORS.border}`, fontFamily: "'DM Sans', sans-serif", fontSize: 13, outline: "none", background: COLORS.bg }} />
+                  <select value={filters.type} onChange={e => setFilters(f => ({ ...f, type: e.target.value }))} style={{ padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${COLORS.border}`, fontFamily: "'DM Sans', sans-serif", fontSize: 13, background: COLORS.bg, color: COLORS.text }}>
+                    <option value="all">All Types</option>
+                    <option value="physical">Physical</option>
+                    <option value="online">Online</option>
+                  </select>
+                  <select value={filters.price} onChange={e => setFilters(f => ({ ...f, price: e.target.value }))} style={{ padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${COLORS.border}`, fontFamily: "'DM Sans', sans-serif", fontSize: 13, background: COLORS.bg, color: COLORS.text }}>
+                    <option value="all">All Prices</option>
+                    <option value="free">Free</option>
+                    <option value="paid">Paid</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 16, fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: COLORS.muted }}>
+                Showing <strong style={{ color: COLORS.text }}>{filteredEvents.length}</strong> events
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+                {filteredEvents.map(e => (
+                  <EventCard key={e.id} event={e} onClick={() => setSelectedEvent(e)} wishlisted={wishlist.includes(e.id)} onWishlist={toggleWishlist} />
+                ))}
+              </div>
+              {filteredEvents.length === 0 && (
+                <div style={{ textAlign: "center", padding: 60 }}>
+                  <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
+                  <h3 style={{ fontFamily: "'Syne', sans-serif" }}>No events found</h3>
+                  <p style={{ color: COLORS.muted, fontFamily: "'DM Sans', sans-serif" }}>Try adjusting your filters</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {page === "browse" && selectedEvent && (
+            <EventDetail event={selectedEvent} onBack={() => setSelectedEvent(null)} onRegister={(event, tickets, total) => { setCheckoutData({ event, tickets, total }); setShowCheckout(true); }} wishlisted={wishlist.includes(selectedEvent.id)} onWishlist={toggleWishlist} />
+          )}
+
+          {page === "tickets" && <MyTickets bookings={bookings} />}
+
+          {page === "wishlist" && (
+            <div>
+              <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, marginBottom: 24 }}>My Wishlist</h2>
+              {wishlist.length === 0 ? (
+                <div style={{ textAlign: "center", padding: 60 }}>
+                  <div style={{ fontSize: 48, marginBottom: 16 }}>🤍</div>
+                  <h3 style={{ fontFamily: "'Syne', sans-serif" }}>No wishlisted events</h3>
+                  <p style={{ color: COLORS.muted, fontFamily: "'DM Sans', sans-serif" }}>Heart events while browsing to save them here.</p>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+                  {events.filter(e => wishlist.includes(e.id)).map(e => (
+                    <EventCard key={e.id} event={e} onClick={() => { setSelectedEvent(e); setPage("browse"); }} wishlisted={true} onWishlist={toggleWishlist} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {page === "organiser" && <OrganiserDashboard events={events} />}
+          {page === "ai" && <AIRecommendations events={events} wishlist={wishlist} bookings={bookings} />}
+        </main>
+
+        <CheckoutModal
+          open={showCheckout}
+          onClose={() => setShowCheckout(false)}
+          event={checkoutData?.event}
+          tickets={checkoutData?.tickets}
+          total={checkoutData?.total}
+          onConfirm={() => {
+            if (checkoutData) {
+              const qr = `ES-${checkoutData.event.id}-${Date.now()}`;
+              setBookings(b => [...b, { eventName: checkoutData.event.name, date: checkoutData.event.date, tickets: checkoutData.tickets, total: checkoutData.total, qrCode: qr }]);
+            }
+          }}
+        />
+      </div>
+    </>
+  );
+}
+
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<EventSphere />);
+</script>
+</body>
+</html>
